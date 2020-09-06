@@ -1,7 +1,10 @@
-#include <curl/curl.h>
+#ifndef LIBDISC_APP_H
+#define LIBDISC_APP_H
 
-#define LIBDISC_URL "https://github.com/intrnlerr/libdisc"
-#define LIBDISC_VER "0.1"
+#include "curl/curl.h"
+#include "disc_types.h"
+
+
 
 #define LIBDISC_DISCORDAPI_URL "https://discord.com/api/v6"
 #define LIBDISC_ENDPOINT(url) LIBDISC_DISCORDAPI_URL ## url
@@ -16,8 +19,10 @@ struct disc_app
     const char* scope;
 };
 
-__declspec(dllexport) struct disc_app* disc_app_init();
-__declspec(dllexport) void disc_app_free(struct disc_app* app);
+LIBDISC_EXPORT struct disc_app* disc_app_init();
+LIBDISC_EXPORT void disc_app_free(struct disc_app* app);
 // actually hell
-__declspec(dllexport) int disc_app_authorize(struct disc_app* app);
-__declspec(dllexport) int disc_app_get(struct disc_app* app, const char* endpoint);
+LIBDISC_EXPORT int disc_app_authorize(struct disc_app* app);
+LIBDISC_EXPORT int disc_app_get(struct disc_app* app, const char* endpoint);
+
+#endif // !LIBDISC_APP_H
