@@ -16,8 +16,8 @@ struct disc_app
     const char* scope;
 };
 
-struct disc_app* disc_app_init();
-void disc_app_free(struct disc_app* app);
+__declspec(dllexport) struct disc_app* disc_app_init();
+__declspec(dllexport) void disc_app_free(struct disc_app* app);
 // actually hell
-int disc_app_authorize(struct disc_app* app);
-int disc_app_get(struct disc_app* app, const char* endpoint);
+__declspec(dllexport) int disc_app_authorize(struct disc_app* app);
+__declspec(dllexport) int disc_app_get(struct disc_app* app, const char* endpoint);
