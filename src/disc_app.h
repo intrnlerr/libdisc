@@ -12,17 +12,18 @@
 struct disc_app
 {
     CURL* curl_handle;
+    struct curl_slist* auth_header;
     struct disc_json_parser* parser;
-
-    const char* access_token;
-    const char* refresh_token;
-    const char* scope;
 };
 
 LIBDISC_EXPORT struct disc_app* disc_app_init();
 LIBDISC_EXPORT void disc_app_free(struct disc_app* app);
-// actually hell
-LIBDISC_EXPORT int disc_app_authorize(struct disc_app* app);
+
+LIBDISC_EXPORT void disc_app_settoken(struct disc_app* app, const char* token);
+// actually im bad at reading
+// LIBDISC_EXPORT void disc_app_client_cred_grant(struct disc_app* app, const char* id, const char* secret);
+// LIBDISC_EXPORT int disc_app_authorize(struct disc_app* app);
 LIBDISC_EXPORT int disc_app_get(struct disc_app* app, const char* endpoint);
+LIBDISC_EXPORT int disc_app_post(struct disc_app* app, const char* endpoint);
 
 #endif // !LIBDISC_APP_H
