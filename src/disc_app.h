@@ -3,8 +3,7 @@
 
 #include "curl/curl.h"
 #include "disc_types.h"
-
-
+#include "disc_json.h"
 
 #define LIBDISC_DISCORDAPI_URL "https://discord.com/api/v6"
 #define LIBDISC_ENDPOINT(url) LIBDISC_DISCORDAPI_URL ## url
@@ -13,6 +12,7 @@
 struct disc_app
 {
     CURL* curl_handle;
+    struct disc_json_parser* parser;
 
     const char* access_token;
     const char* refresh_token;

@@ -8,6 +8,6 @@ enum disc_encoding_type
 struct disc_gateway_con 
 {
     int v;
-    disc_encoding_type encoding;
+    enum disc_encoding_type encoding;
     unsigned char compression;
 };
