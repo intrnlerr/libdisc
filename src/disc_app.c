@@ -2,8 +2,10 @@
 
 size_t disc_app_writecallback(char* ptr, size_t size, size_t nmemb, void* userdata)
 {
+    // TODO: this is pretty bad
     struct disc_app* app = userdata;
     disc_json_parse(app->parser, ptr, nmemb);
+    return nmemb;
 }
 
 struct disc_app* disc_app_init()

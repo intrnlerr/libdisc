@@ -127,7 +127,7 @@ struct disc_json_parser* disc_json_parser_init()
     struct disc_json_parser* parser = malloc(sizeof(struct disc_json_parser));
     if (parser == NULL) return NULL;
     parser->head.type = INVALID;
-    parser->parent = NULL;
+    parser->root = NULL;
     parser->state = SEEK;
     parser->strindex = 0;
 }
@@ -157,15 +157,15 @@ void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb)
             }
             else if (parser->head.type == INVALID)
             {
-                if (parser->parent == NULL)
+                if (parser->root == NULL)
                 {
                     struct disc_json_object_init* obj = disc_json_object_init();
                     if (obj == NULL) abort();
-                    parser->parent = obj;
+                    parser->root = obj;
                 }
                 parser->state = SEEK_OBJ;
                 parser->head.type = OBJECT;
-                parser->head.data.object = parser->parent;
+                parser->head.data.object = parser->root;
             }
         }
         // string or key
@@ -196,6 +196,10 @@ void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb)
                 parser->strindex = 0;
             }
         }
+        else if (isdigit(data[i]))
+        {
+
+        }
         else if (parser->state == READ_OBJKEY || parser->state == READ_OBJSTR)
         {
             // add char to strbuf
@@ -212,7 +216,7 @@ void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb)
 
 void disc_json_parser_free(struct disc_json_parser* parser)
 {
-    if (parser->parent != NULL)
-        disc_json_object_free(parser->parent);
+    if (parser->root != NULL)
+        disc_json_object_free(parser->root);
     free(parser);
 }

@@ -2,6 +2,7 @@
 
 enum disc_json_type
 {
+    JSON_NULL,
     OBJECT,
     ARRAY,
     STRING,
@@ -50,16 +51,17 @@ enum disc_json_state
     READ_OBJKEY,
     SEEK_OBJVALUE,
     READ_OBJSTR,
+    READ_OBJNUM,
     READ_ARRAY
 };
 
 static struct disc_json_parser
 {
     enum disc_json_state state;
-    struct disc_json_object* parent;
+    struct disc_json_object* root;
+    struct disc_json_value head;
     char stringbuf[100];
     size_t strindex;
-    struct disc_json_value head;
 };
 
 // no longer unused =D
