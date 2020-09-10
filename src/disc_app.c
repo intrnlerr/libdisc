@@ -63,6 +63,7 @@ int disc_app_post(struct disc_app* app, const char* url)
     return rescode;
 }
 
+// UNUSED
 void disc_app_client_cred_grant(struct disc_app* app, const char* id, const char* secret)
 {
     char userpwd[100]; 

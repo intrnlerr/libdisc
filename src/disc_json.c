@@ -155,7 +155,7 @@ static void disc_json_array_insert(struct disc_json_array* arr, struct disc_json
     arr->items++;
 }
 
-static void disc_json_array_insert_str(struct disc_json_object* arr, const char* str, size_t len)
+static void disc_json_array_insert_str(struct disc_json_array* arr, const char* str, size_t len)
 {
     struct disc_json_value* val = malloc(sizeof(struct disc_json_value));
     if (val == NULL) return;
@@ -187,6 +187,16 @@ static inline void disc_json_array_insert_arr(struct disc_json_array* arr, struc
     val->data.object = new;
     val->type = ARRAY;
     disc_json_array_insert(arr, val);
+}
+
+struct disc_json_value* disc_json_object_get(struct disc_json_object* obj, const char* key)
+{
+    if (obj->items == 0) return NULL;
+    for (size_t i = 0; i < obj->items; ++i)
+    {
+        if (strcmp(obj->keys[i], key) == 0) return obj->values[i];
+    }
+    return NULL;
 }
 
 static void disc_json_object_free(struct disc_json_object* obj)
@@ -267,8 +277,69 @@ void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb)
     for (size_t i = 0; i < nmemb; ++i)
     {
         // help
-        
-        if (data[i] == '{')
+        // string or key
+        if (data[i] == '\\')
+        {
+            if (data[i + 1] == '"')
+            {
+                parser->stringbuf[parser->strindex++] = '\n';
+            }
+        }
+        else if (data[i] == '"')
+        {
+            // read_name or read_obj for string
+            if (parser->state == SEEK_OBJ)
+            {
+                // i find key start
+                parser->state = READ_OBJKEY;
+
+            }
+            else if (parser->state == READ_OBJKEY)
+            {
+                // finish read
+                disc_json_object_insert_key(parser->head.data.object, parser->stringbuf, parser->strindex);
+                parser->state = SEEK_OBJVALUE;
+                parser->strindex = 0;
+            }
+            else if (parser->state == SEEK_OBJVALUE)
+            {
+                parser->state = READ_OBJSTR;
+            }
+            else if (parser->state == READ_OBJSTR)
+            {
+                // finish string value of object
+                disc_json_object_insert_str(parser->head.data.object, parser->stringbuf, parser->strindex);
+                parser->state = SEEK_OBJ;
+                parser->strindex = 0;
+            }
+            else if (parser->state == SEEK_ARRAY)
+            {
+                parser->state = READ_ARRAYSTR;
+            }
+            else if (parser->state == READ_ARRAYSTR)
+            {
+                disc_json_array_insert_str(parser->head.data.array, parser->stringbuf, parser->strindex);
+                parser->state = SEEK_ARRAY;
+                parser->strindex = 0;
+            }
+        }
+        else if (data[i] == ',')
+        {
+            if (parser->state == READ_OBJNUM)
+            {
+                parser->stringbuf[parser->strindex] = '\0';
+                disc_json_object_insert_num(parser->head.data.object, strtof(parser->stringbuf, NULL));
+                parser->state = SEEK_OBJ;
+                parser->strindex = 0;
+            }
+        }
+        else if (parser->state == READ_OBJKEY || parser->state == READ_OBJSTR || parser->state == READ_OBJNUM || parser->state == READ_ARRAYSTR)
+        {
+            // add char to strbuf
+            parser->stringbuf[parser->strindex] = data[i];
+            parser->strindex++;
+        }
+        else if (data[i] == '{')
         {
             // start object
             if (parser->state == SEEK_OBJVALUE)
@@ -288,7 +359,7 @@ void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb)
                 // do something i guess
                 struct disc_json_object* obj = disc_json_object_init();
                 if (obj == NULL) abort();
-                disc_json_array_insert_obj(parser->head.data.object, obj);
+                disc_json_array_insert_obj(parser->head.data.array, obj);
                 parser->stack[parser->stackpos] = parser->head;
                 parser->stackpos++;
                 parser->head.type = OBJECT;
@@ -320,7 +391,7 @@ void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb)
                 parser->stack[parser->stackpos] = parser->head;
                 parser->stackpos++;
                 parser->head.type = ARRAY;
-                parser->head.data.object = arr;
+                parser->head.data.array = arr;
                 parser->state = SEEK_ARRAY;
             }
             else if (parser->state == SEEK_ARRAY)
@@ -332,10 +403,8 @@ void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb)
                 parser->stack[parser->stackpos] = parser->head;
                 parser->stackpos++;
                 parser->head.type = ARRAY;
-                parser->head.data.object = arr;
-                parser->state = SEEK_ARRAY;
+                parser->head.data.array = arr;
             }
-            
         }
         else if (data[i] == '}' || data[i] == ']')
         {
@@ -343,51 +412,6 @@ void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb)
             parser->head = parser->stack[--parser->stackpos];
             if (parser->head.type == OBJECT) parser->state = SEEK_OBJ;
             else if (parser->head.type == ARRAY) parser->state = SEEK_ARRAY;
-        }
-        // string or key
-        else if (data[i] == '"')
-        {
-            // read_name or read_obj for string
-            if (parser->state == SEEK_OBJ)
-            {
-                // i find key start
-                parser->state = READ_OBJKEY;
-
-            }
-            else if (parser->state == READ_OBJKEY)
-            {
-                // finish read
-                disc_json_object_insert_key(parser->head.data.object, parser->stringbuf, parser->strindex);
-                parser->state = SEEK_OBJVALUE;
-                parser->strindex = 0;
-            }
-            else if (parser->state == SEEK_OBJVALUE)
-            {
-                parser->state = READ_OBJSTR;
-            }
-            else if (parser->state == READ_OBJSTR)
-            {
-                // finish string value of object
-                disc_json_object_insert_str(parser->head.data.object, parser->stringbuf, parser->strindex);
-                parser->state = SEEK_OBJ;
-                parser->strindex = 0;
-            }
-        }
-        else if (data[i] == ',')
-        {
-            if (parser->state == READ_OBJNUM)
-            {
-                parser->stringbuf[parser->strindex] = '\0';
-                disc_json_object_insert_num(parser->head.data.object, strtof(parser->stringbuf, NULL));
-                parser->state = SEEK_OBJ;
-                parser->strindex = 0;
-            }
-        }
-        else if (parser->state == READ_OBJKEY || parser->state == READ_OBJSTR || parser->state == READ_OBJNUM)
-        {
-            // add char to strbuf
-            parser->stringbuf[parser->strindex] = data[i];
-            parser->strindex++;
         }
         else if (parser->state == SEEK_OBJVALUE)
         {

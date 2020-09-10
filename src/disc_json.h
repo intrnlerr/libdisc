@@ -41,6 +41,9 @@ struct disc_json_array
 static struct disc_json_object* disc_json_object_init();
 static struct disc_json_array* disc_json_array_init();
 
+// O(n) basic search
+struct disc_json_value* disc_json_object_get(struct disc_json_object* obj, const char* key);
+
 static void disc_json_object_free(struct disc_json_object* obj);
 static void disc_json_array_free(struct disc_json_array* arr);
 
@@ -63,8 +66,8 @@ struct disc_json_parser
     enum disc_json_state state;
     struct disc_json_object* root;
     struct disc_json_value head;
-    struct disc_json_value stack[5];
-    char stringbuf[100];
+    struct disc_json_value stack[20];
+    char stringbuf[200];
     size_t stackpos;
     size_t strindex;
 };
