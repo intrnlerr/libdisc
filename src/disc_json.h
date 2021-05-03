@@ -1,4 +1,5 @@
 #include "stdlib.h"
+#include "disc_types.h"
 
 enum disc_json_type
 {
@@ -42,7 +43,7 @@ static struct disc_json_object* disc_json_object_init();
 static struct disc_json_array* disc_json_array_init();
 
 // O(n) basic search
-struct disc_json_value* disc_json_object_get(struct disc_json_object* obj, const char* key);
+LIBDISC_EXPORT struct disc_json_value* disc_json_object_get(struct disc_json_object* obj, const char* key);
 
 static void disc_json_object_free(struct disc_json_object* obj);
 static void disc_json_array_free(struct disc_json_array* arr);
@@ -57,6 +58,7 @@ enum disc_json_state
     SEEK_OBJVALUE,
     READ_OBJSTR,
     READ_OBJNUM,
+    READ_OBJTFN,
     SEEK_ARRAY,
     READ_ARRAYSTR
 };

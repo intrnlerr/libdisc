@@ -25,5 +25,6 @@ LIBDISC_EXPORT void disc_app_settoken(struct disc_app* app, const char* token);
 // LIBDISC_EXPORT int disc_app_authorize(struct disc_app* app);
 LIBDISC_EXPORT int disc_app_get(struct disc_app* app, const char* endpoint);
 LIBDISC_EXPORT int disc_app_post(struct disc_app* app, const char* endpoint);
+LIBDISC_EXPORT int disc_app_post_json(struct disc_app* app, const char* endpoint, const char* data, size_t size);
 
 #endif // !LIBDISC_APP_H

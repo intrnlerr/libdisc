@@ -282,8 +282,10 @@ void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb)
         {
             if (data[i + 1] == '"')
             {
-                parser->stringbuf[parser->strindex++] = '\n';
+                if (parser->strindex < 200)
+                    parser->stringbuf[parser->strindex++] = '"';
             }
+            i++;
         }
         else if (data[i] == '"')
         {
@@ -321,11 +323,16 @@ void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb)
                 disc_json_array_insert_str(parser->head.data.array, parser->stringbuf, parser->strindex);
                 parser->state = SEEK_ARRAY;
                 parser->strindex = 0;
+                
             }
         }
-        else if (data[i] == ',')
+        else if (parser->state == READ_OBJNUM)
         {
-            if (parser->state == READ_OBJNUM)
+            // this is fixes a really silly edgecase that caused many headaches
+            parser->stringbuf[parser->strindex] = data[i];
+            parser->strindex++;
+            // TODO: this can cause a read access violation
+            if (!isdigit(data[i + 1]))
             {
                 parser->stringbuf[parser->strindex] = '\0';
                 disc_json_object_insert_num(parser->head.data.object, strtof(parser->stringbuf, NULL));
@@ -336,6 +343,10 @@ void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb)
         else if (parser->state == READ_OBJKEY || parser->state == READ_OBJSTR || parser->state == READ_OBJNUM || parser->state == READ_ARRAYSTR)
         {
             // add char to strbuf
+            if (parser->strindex >= 198)
+            {
+                continue;
+            }
             parser->stringbuf[parser->strindex] = data[i];
             parser->strindex++;
         }
@@ -353,6 +364,7 @@ void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb)
                 parser->head.type = OBJECT;
                 parser->head.data.object = obj;
                 parser->state = SEEK_OBJ;
+                
             } 
             else if (parser->state == SEEK_ARRAY)
             {
@@ -365,6 +377,7 @@ void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb)
                 parser->head.type = OBJECT;
                 parser->head.data.object = obj;
                 parser->state = SEEK_OBJ;
+                
             }
             else if (parser->head.type == INVALID)
             {
@@ -378,6 +391,7 @@ void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb)
                 parser->head.type = OBJECT;
                 parser->head.data.object = parser->root;
             }
+            
         }
         else if (data[i] == '[')
         {
@@ -405,33 +419,31 @@ void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb)
                 parser->head.type = ARRAY;
                 parser->head.data.array = arr;
             }
+            
         }
         else if (data[i] == '}' || data[i] == ']')
         {
             // go down a level
-            parser->head = parser->stack[--parser->stackpos];
+            parser->head = parser->stack[--(parser->stackpos)];
             if (parser->head.type == OBJECT) parser->state = SEEK_OBJ;
             else if (parser->head.type == ARRAY) parser->state = SEEK_ARRAY;
         }
         else if (parser->state == SEEK_OBJVALUE)
         {
-            if (data[i] == 'n' && strncmp(data + i, "null", 4) == 0)
+            if (data[i] == 'n')
             {
                 // null value
                 disc_json_object_insert_null(parser->head.data.object);
-                i += 3;
                 parser->state = SEEK_OBJ;
             }
-            else if (data[i] == 't' && strncmp(data + i, "true", 4) == 0)
+            else if (data[i] == 't')
             {
                 disc_json_object_insert_bool(parser->head.data.object, 1);
-                i += 3;
                 parser->state = SEEK_OBJ;
             }
-            else if (data[i] == 'f' && strncmp(data + i, "false", 5) == 0)
+            else if (data[i] == 'f')
             {
                 disc_json_object_insert_bool(parser->head.data.object, 0);
-                i += 4;
                 parser->state = SEEK_OBJ;
             }
             else if (isdigit(data[i]))
@@ -439,11 +451,21 @@ void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb)
                 parser->state = READ_OBJNUM;
                 parser->stringbuf[parser->strindex] = data[i];
                 parser->strindex++;
+                // this is really silly
+                if (!isdigit(data[i + 1]))
+                {
+                    parser->stringbuf[parser->strindex] = '\0';
+                    disc_json_object_insert_num(parser->head.data.object, strtof(parser->stringbuf, NULL));
+                    parser->state = SEEK_OBJ;
+                    parser->strindex = 0;
+                }
             }
         }
         else if (data[i] == ':' && parser->state != SEEK_OBJVALUE)
         {
             printf("invalid json at index %d\n", i);
+            fwrite(data, 1, i, stdout);
+            printf("\n");
         }
         
     }
