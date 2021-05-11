@@ -14,7 +14,7 @@ struct disc_app* disc_app_init()
     if (app == NULL) return app;
     app->curl_handle = curl_easy_init();
     app->parser = disc_json_parser_init();
-    app->auth_header = NULL;
+    app->auth_header = curl_slist_append(NULL, "Content-Type: application/json");
 
     curl_easy_setopt(app->curl_handle, CURLOPT_USERAGENT, "DiscordBot ("LIBDISC_URL", "LIBDISC_VER")");
     curl_easy_setopt(app->curl_handle, CURLOPT_WRITEFUNCTION, disc_app_writecallback);
@@ -45,7 +45,6 @@ int disc_app_get(struct disc_app* app, const char* url)
 {
     curl_easy_setopt(app->curl_handle, CURLOPT_URL, url);
     curl_easy_setopt(app->curl_handle, CURLOPT_HTTPGET, 1);
-    disc_json_parser_reset(app->parser);
     CURLcode res = curl_easy_perform(app->curl_handle);
     long rescode = 0;
     curl_easy_getinfo(app->curl_handle, CURLINFO_RESPONSE_CODE, &rescode);
@@ -56,7 +55,18 @@ int disc_app_post(struct disc_app* app, const char* url)
 {
     curl_easy_setopt(app->curl_handle, CURLOPT_URL, url);
     curl_easy_setopt(app->curl_handle, CURLOPT_POST, 1);
-    disc_json_parser_reset(app->parser);
+    CURLcode res = curl_easy_perform(app->curl_handle);
+    long rescode = 0;
+    curl_easy_getinfo(app->curl_handle, CURLINFO_RESPONSE_CODE, &rescode);
+    return rescode;
+}
+
+LIBDISC_EXPORT int disc_app_post_json(struct disc_app* app, const char* url, const char* data, size_t size)
+{
+    curl_easy_setopt(app->curl_handle, CURLOPT_URL, url);
+    curl_easy_setopt(app->curl_handle, CURLOPT_POSTFIELDSIZE, size);
+    curl_easy_setopt(app->curl_handle, CURLOPT_POSTFIELDS, data);
+    curl_easy_setopt(app->curl_handle, CURLOPT_POST, 1);
     CURLcode res = curl_easy_perform(app->curl_handle);
     long rescode = 0;
     curl_easy_getinfo(app->curl_handle, CURLINFO_RESPONSE_CODE, &rescode);

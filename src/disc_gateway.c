@@ -28,18 +28,12 @@ static int disc_gateway_def_callback(struct lws *wsi, enum lws_callback_reasons 
         break;
     case LWS_CALLBACK_CLIENT_RECEIVE:
         // handle discord event
-        if (((char*)in)[0] != '{')
-        {
-            // this is a continuation packet
-            disc_json_parse(connection->parser, in, len);
-            if (connection->parser->stackpos != -1) return 0;
-        }
-        else
-        {
-            disc_json_parser_reset(connection->parser);
-            disc_json_parse(connection->parser, in, len);
-        }
-        struct disc_json_object* root = connection->parser->root;
+        // printf("%.*s\n", len, (char*)in);
+        disc_json_parse(connection->parser, in, len);
+        
+        struct disc_json_object* root = disc_json_queue_dequeue(connection->parser->queue);
+        if (!root)
+            break;
         struct disc_json_value* v_op = disc_json_object_get(root, "op");
         int op = (int)v_op->data.number;
         
@@ -50,7 +44,7 @@ static int disc_gateway_def_callback(struct lws *wsi, enum lws_callback_reasons 
         case 0:
             connection->last_sequence = disc_json_object_get(root, "s")->data.number;
             if (connection->user_callback)
-                connection->user_callback(connection, connection->user_data);
+                connection->user_callback(root, connection, connection->user_data);
             return 0;
         case 9:
             // TODO: reconnection
@@ -131,8 +125,9 @@ struct disc_gateway_con* disc_gateway_con_init(struct disc_app* app, const char*
     cinfo.context = connection->context;
     cinfo.ssl_connection = LCCSCF_USE_SSL | LCCSCF_ALLOW_SELFSIGNED | LCCSCF_ALLOW_INSECURE;
     disc_get_gateway(app);
+    struct disc_json_object* response = disc_json_queue_dequeue(app->parser->queue);
     cinfo.port = 443;
-    cinfo.address = app->parser->root->values[0]->data.string + 6;
+    cinfo.address = response->values[0]->data.string + 6;
     cinfo.host = cinfo.address;
     cinfo.origin = cinfo.address;
     cinfo.path = "/";

@@ -17,7 +17,7 @@
 #define DISC_INTENT_DIRECT_MESSAGE_REACTIONS (1 << 13)
 #define DISC_INTENT_DIRECT_MESSAGE_TYPING    (1 << 14)
 
-typedef int disc_gateway_callback(struct disc_gateway_con* con, void* user);
+typedef int disc_gateway_callback(struct disc_json_object* msg, struct disc_gateway_con* con, void* user);
 
 enum disc_encoding_type
 {
