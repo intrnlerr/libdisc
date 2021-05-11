@@ -63,12 +63,22 @@ enum disc_json_state
     READ_ARRAYSTR
 };
 
+struct disc_json_queue {
+    struct disc_json_object** buffer;
+    struct disc_json_object** buffer_end;
+    struct disc_json_object** data_start;
+    struct disc_json_object** data_end;
+};
+
+struct disc_json_queue* disc_json_queue_init(size_t size);
+struct disc_json_object* disc_json_queue_dequeue(struct disc_json_queue* queue);
+
 struct disc_json_parser
 {
     enum disc_json_state state;
-    struct disc_json_object* root;
     struct disc_json_value head;
     struct disc_json_value stack[20];
+    struct disc_json_queue* queue;
     char stringbuf[200];
     size_t stackpos;
     size_t strindex;
@@ -76,6 +86,6 @@ struct disc_json_parser
 
 // no longer unused =D
 struct disc_json_parser* disc_json_parser_init();
-void disc_json_parser_reset(struct disc_json_parser* parser);
+// void disc_json_parser_reset(struct disc_json_parser* parser);
 void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb);
 void disc_json_parser_free(struct disc_json_parser* parser);

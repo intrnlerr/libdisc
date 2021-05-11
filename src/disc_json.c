@@ -184,7 +184,7 @@ static inline void disc_json_array_insert_arr(struct disc_json_array* arr, struc
 {
     struct disc_json_value* val = malloc(sizeof(struct disc_json_value));
     if (val == NULL) return;
-    val->data.object = new;
+    val->data.array = new;
     val->type = ARRAY;
     disc_json_array_insert(arr, val);
 }
@@ -247,30 +247,72 @@ static void disc_json_array_free(struct disc_json_array* arr)
     free(arr);
 }
 
+struct disc_json_queue* disc_json_queue_init(size_t queue_size)
+{
+    struct disc_json_queue* ptr = malloc(sizeof(struct disc_json_queue));
+    if (!ptr)
+        return NULL;
+    ptr->buffer = calloc(queue_size, sizeof(struct disc_json_object*));
+    if (!ptr->buffer) {
+        free(ptr);
+        return NULL;
+    }
+    for (size_t i = 0; i < queue_size; i++) {
+        ptr->buffer[i] = NULL;
+    }
+    ptr->buffer_end = ptr->buffer + queue_size;
+    ptr->data_start = ptr->buffer;
+    ptr->data_end = ptr->buffer;
+    return ptr;
+}
+
+void disc_json_queue_free(struct disc_json_queue* queue)
+{
+    struct disc_json_object** o = queue->buffer;
+    while (o != queue->buffer_end) {
+        if (*o)
+            disc_json_object_free(*o);
+        ++o;
+    }
+    free(queue->buffer);
+    free(queue);
+}
+
+static void disc_json_queue_inc(struct disc_json_object*** ptr, struct disc_json_queue* q) {
+    printf("queue %s inc\n", *ptr == q->data_end ? "end" : "start");
+    if (++(*ptr) == q->buffer_end)
+        *ptr = q->buffer;
+}
+
+static void disc_json_queue_dec(struct disc_json_object*** ptr, struct disc_json_queue* q) {
+    printf("queue %s dec\n", *ptr == q->data_end ? "end" : "start");
+    if ((*ptr)-- == q->buffer)
+        *ptr = q->buffer_end;
+}
+
+struct disc_json_object* disc_json_queue_dequeue(struct disc_json_queue* queue)
+{
+    if (queue->data_start == queue->data_end) {
+        return NULL;
+    }
+    struct disc_json_object* obj = *queue->data_start;
+    disc_json_queue_inc(&queue->data_start, queue);
+    return obj;
+}
+
 struct disc_json_parser* disc_json_parser_init()
 {
     struct disc_json_parser* parser = malloc(sizeof(struct disc_json_parser));
     if (parser == NULL) return NULL;
     parser->head.type = INVALID;
-    parser->root = NULL;
+    parser->queue = disc_json_queue_init(4);
     parser->state = SEEK;
     parser->strindex = 0;
     parser->stackpos = 0;
     return parser;
 }
 
-void disc_json_parser_reset(struct disc_json_parser* parser)
-{
-    parser->head.type = INVALID;
-    if (parser->root != NULL)
-    {
-        disc_json_object_free(parser->root);
-        parser->root = NULL;
-    }
-    parser->state = SEEK;
-    parser->strindex = 0;
-    parser->stackpos = 0;
-}
+
 
 void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb)
 {
@@ -381,15 +423,21 @@ void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb)
             }
             else if (parser->head.type == INVALID)
             {
-                if (parser->root == NULL)
-                {
-                    struct disc_json_object* obj = disc_json_object_init();
-                    if (obj == NULL) abort();
-                    parser->root = obj;
+                for (struct disc_json_object*** o = parser->queue->buffer; o != parser->queue->buffer_end; ++o) {
+                    printf("%d: %p\n", o - parser->queue->buffer, *o);
                 }
+                // if there is something at where we are trying to write, free it
+                if (*(parser->queue->data_end)) {
+                    printf("queue loopback maybe\n");
+                    disc_json_object_free(*(parser->queue->data_end));
+                    *parser->queue->data_end = NULL;
+                }
+                *(parser->queue->data_end) = disc_json_object_init();
+                // TODO: remove abort call
+                if (*(parser->queue->data_end) == NULL) abort();
                 parser->state = SEEK_OBJ;
                 parser->head.type = OBJECT;
-                parser->head.data.object = parser->root;
+                parser->head.data.object = *(parser->queue->data_end);
             }
             
         }
@@ -423,10 +471,18 @@ void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb)
         }
         else if (data[i] == '}' || data[i] == ']')
         {
-            // go down a level
-            parser->head = parser->stack[--(parser->stackpos)];
-            if (parser->head.type == OBJECT) parser->state = SEEK_OBJ;
-            else if (parser->head.type == ARRAY) parser->state = SEEK_ARRAY;
+            if (parser->stackpos == 0) {
+                parser->state = SEEK;
+                parser->head.type = INVALID;
+                disc_json_queue_inc(&parser->queue->data_end, parser->queue);
+                printf("stackpos is 0\n");
+            }
+            else {
+                // go down a level
+                parser->head = parser->stack[--(parser->stackpos)];
+                if (parser->head.type == OBJECT) parser->state = SEEK_OBJ;
+                else if (parser->head.type == ARRAY) parser->state = SEEK_ARRAY;
+            }
         }
         else if (parser->state == SEEK_OBJVALUE)
         {
@@ -473,7 +529,7 @@ void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb)
 
 void disc_json_parser_free(struct disc_json_parser* parser)
 {
-    if (parser->root != NULL)
-        disc_json_object_free(parser->root);
+    
+    disc_json_queue_free(parser->queue);
     free(parser);
 }

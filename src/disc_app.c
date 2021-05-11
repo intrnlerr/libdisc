@@ -45,7 +45,6 @@ int disc_app_get(struct disc_app* app, const char* url)
 {
     curl_easy_setopt(app->curl_handle, CURLOPT_URL, url);
     curl_easy_setopt(app->curl_handle, CURLOPT_HTTPGET, 1);
-    disc_json_parser_reset(app->parser);
     CURLcode res = curl_easy_perform(app->curl_handle);
     long rescode = 0;
     curl_easy_getinfo(app->curl_handle, CURLINFO_RESPONSE_CODE, &rescode);
@@ -56,7 +55,6 @@ int disc_app_post(struct disc_app* app, const char* url)
 {
     curl_easy_setopt(app->curl_handle, CURLOPT_URL, url);
     curl_easy_setopt(app->curl_handle, CURLOPT_POST, 1);
-    disc_json_parser_reset(app->parser);
     CURLcode res = curl_easy_perform(app->curl_handle);
     long rescode = 0;
     curl_easy_getinfo(app->curl_handle, CURLINFO_RESPONSE_CODE, &rescode);
@@ -69,7 +67,6 @@ LIBDISC_EXPORT int disc_app_post_json(struct disc_app* app, const char* url, con
     curl_easy_setopt(app->curl_handle, CURLOPT_POSTFIELDSIZE, size);
     curl_easy_setopt(app->curl_handle, CURLOPT_POSTFIELDS, data);
     curl_easy_setopt(app->curl_handle, CURLOPT_POST, 1);
-    disc_json_parser_reset(app->parser);
     CURLcode res = curl_easy_perform(app->curl_handle);
     long rescode = 0;
     curl_easy_getinfo(app->curl_handle, CURLINFO_RESPONSE_CODE, &rescode);
