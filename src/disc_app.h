@@ -7,6 +7,7 @@
 
 #define LIBDISC_DISCORDAPI_URL "https://discord.com/api/v6"
 #define LIBDISC_ENDPOINT(url) LIBDISC_DISCORDAPI_URL ## url
+#define LIBDISC_CREATEMESSAGE(channel) LIBDISC_ENDPOINT("/channels/") ## channel ## "/messages"
 
 // oauth i guess
 struct disc_app
