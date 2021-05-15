@@ -279,13 +279,11 @@ void disc_json_queue_free(struct disc_json_queue* queue)
 }
 
 static void disc_json_queue_inc(struct disc_json_object*** ptr, struct disc_json_queue* q) {
-    printf("queue %s inc\n", *ptr == q->data_end ? "end" : "start");
     if (++(*ptr) == q->buffer_end)
         *ptr = q->buffer;
 }
 
 static void disc_json_queue_dec(struct disc_json_object*** ptr, struct disc_json_queue* q) {
-    printf("queue %s dec\n", *ptr == q->data_end ? "end" : "start");
     if ((*ptr)-- == q->buffer)
         *ptr = q->buffer_end;
 }
@@ -423,12 +421,8 @@ void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb)
             }
             else if (parser->head.type == INVALID)
             {
-                for (struct disc_json_object*** o = parser->queue->buffer; o != parser->queue->buffer_end; ++o) {
-                    printf("%d: %p\n", o - parser->queue->buffer, *o);
-                }
                 // if there is something at where we are trying to write, free it
                 if (*(parser->queue->data_end)) {
-                    printf("queue loopback maybe\n");
                     disc_json_object_free(*(parser->queue->data_end));
                     *parser->queue->data_end = NULL;
                 }
@@ -475,7 +469,6 @@ void disc_json_parse(struct disc_json_parser* parser, char* data, size_t nmemb)
                 parser->state = SEEK;
                 parser->head.type = INVALID;
                 disc_json_queue_inc(&parser->queue->data_end, parser->queue);
-                printf("stackpos is 0\n");
             }
             else {
                 // go down a level
