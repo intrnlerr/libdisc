@@ -1,4 +1,19 @@
 #include "disc_gateway.h"
+#include <libwebsockets.h>
+
+struct disc_gateway_con {
+    struct lws_context* context;
+    struct disc_json_parser* parser;
+    enum disc_encoding_type encoding;
+    const char* token;
+    unsigned char compression;
+    uint16_t intents;
+    uint32_t last_sequence;
+    uint32_t heartbeat;
+    uint8_t ack_count;
+    void* user_data;
+    disc_gateway_callback* user_callback;
+};
 
 static void send_identify_payload(struct lws* wsi)
 {
@@ -94,13 +109,15 @@ static int disc_gateway_def_callback(struct lws *wsi, enum lws_callback_reasons 
     return 0;
 }
 
-struct disc_gateway_con* disc_gateway_con_init(struct disc_app* app, const char* token)
+struct disc_gateway_con* disc_gateway_con_init(struct disc_app* app, const char* token, disc_gateway_callback* cb, void* user_data)
 {
     struct disc_gateway_con* connection = malloc(sizeof(struct disc_gateway_con));
     if (connection == NULL) return NULL;
     connection->last_sequence = 0;
     connection->parser = disc_json_parser_init();
     connection->token = token;
+	connection->user_callback = cb;
+    connection->user_data = user_data;
     if (!connection->parser)
     {
         free(connection);

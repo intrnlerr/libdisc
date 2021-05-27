@@ -1,5 +1,4 @@
 #include "disc_endpoint.h"
-#include <libwebsockets.h>
 
 #define DISC_INTENT_GUILDS                   (1 << 0)
 #define DISC_INTENT_GUILD_MEMBERS            (1 << 1)
@@ -25,22 +24,9 @@ enum disc_encoding_type
     etf // unsuported
 };
 
-struct disc_gateway_con 
-{
-    struct lws_context* context;
-    struct disc_json_parser* parser;
-    enum disc_encoding_type encoding;
-    const char* token;
-    unsigned char compression;
-    uint16_t intents;
-    uint32_t last_sequence;
-    uint32_t heartbeat;
-    uint8_t ack_count;
-    void* user_data;
-    disc_gateway_callback* user_callback;
-};
+struct disc_gateway_con;
 
-LIBDISC_EXPORT struct disc_gateway_con* disc_gateway_con_init(struct disc_app* app, const char* token);
+LIBDISC_EXPORT struct disc_gateway_con* disc_gateway_con_init(struct disc_app* app, const char* token, disc_gateway_callback* cb, void* user_data);
 LIBDISC_EXPORT void disc_gateway_con_free(struct disc_gateway_con* con);
 
 LIBDISC_EXPORT int disc_gateway_service(struct disc_gateway_con* c);
